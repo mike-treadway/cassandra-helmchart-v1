@@ -1,0 +1,100 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ .Values.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.name }}
+spec:
+  serviceName: {{ .Values.name }}
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.name }}
+    spec:
+      terminationGracePeriodSeconds: 1800
+      imagePullSecrets:
+      - name: bluemix-image-pull-secret-regional
+      containers:
+        - name: {{ .Values.name }}
+          image: {{ .Values.image }}
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 7000
+              name: intra-node
+            - containerPort: 7001
+              name: tls-intra-node
+            - containerPort: 7199
+              name: jmx
+            - containerPort: 9042
+              name: cql
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                - /bin/sh
+                - -c
+                - nodetool drain
+          readinessProbe:
+            exec:
+              command: ["/bin/bash", "-c", "/usr/local/bin/ready-probe.sh"]
+            initialDelaySeconds: 15
+            periodSeconds: 60
+            timeoutSeconds: 10
+          env:
+            - name: CASSANDRA_BROADCAST_ADDRESS_LIST
+              valueFrom:
+                configMapKeyRef:
+                  name: cassandra
+                  key: CASSANDRA_BROADCAST_ADDRESS_LIST
+            - name: CASSANDRA_SEEDS
+              value: "{{ join "," .Values.seeds }}"
+            - name: MAX_HEAP_SIZE
+              value: 1024M
+            - name: HEAP_NEWSIZE
+              value: 100M
+            - name: CASSANDRA_CLUSTER_NAME
+              value: "{{ .Values.clusterName }}"
+            - name: CASSANDRA_DC
+              value: "{{ .Values.dc }}"
+            - name: CASSANDRA_RACK
+              value: "{{ .Values.rack }}"
+            - name: CASSANDRA_ENDPOINT_SNITCH
+              value: GossipingPropertyFileSnitch
+            - name: CASSANDRA_PREFER_LOCAL
+              value: "false"
+            - name: JVM_OPTS
+              value: "-Dcassandra.load_ring_state=false"
+            - name: CASSANDRA_YAML_PATH
+              value: "/tmp/cassandra/cassandra.yaml"
+          volumeMounts:
+          {{ if eq .Values.storage.enabled true }}
+            - name: {{ .Values.name }}-data
+              mountPath: /var/lib/cassandra
+          {{ end }}
+            - name: cassandra-config
+              mountPath: /tmp/cassandra
+      volumes:
+        - name: cassandra-config
+          configMap:
+            name: cassandra
+            items:
+            - key: cassandra.yaml
+              path: cassandra.yaml
+{{ if eq .Values.storage.enabled true }}
+  volumeClaimTemplates:
+    - metadata:
+        name: {{ .Values.name }}-data
+        labels:
+          billingType: "{{ .Values.storage.billingType }}"
+      spec:
+        storageClassName: "{{ .Values.storage.storageClassName }}"
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ .Values.storage.size }}
+{{ end }}

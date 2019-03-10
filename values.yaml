@@ -1,0 +1,62 @@
+#
+# Number of nodes to run
+#
+replicas: 1
+
+#
+# These are passed down into the Cassandra configuration. The below values assume the
+# region the Kubernetes cluster was deployed in is 'us-south' and the data center the
+# worker nodes are in is DAL13.
+#
+dc: dc1
+rack: rack1
+clusterName: cassandra
+
+#
+# Used as the name of services, pods, etc.
+#
+name: cassandra
+namespace: default
+
+#
+# The Cassandra authenticator to use. This will be updated in the cassandra.yaml file.
+#
+authenticator: PasswordAuthenticator
+
+#
+# The list of Node IPs available for use. Each node in the cluster will be assigned
+# an IP in this list where the index within the stateful set determines the IP to use.
+#
+# External services are created from this IP list. Having more IPs in this list than
+# replicas allows for scaling the statefulset up and down.
+#
+nodeIPs:
+  - "10.0.0.1"
+  - "10.0.0.2"
+  - "10.0.0.3"
+
+#
+# The list of Cassandra seeds to use. When spanning regions, put the IPs of the seed
+# nodes from other regions in this list.
+#
+seeds:
+  - "10.0.0.1"
+
+#
+# When true, this helm chart will attempt to provision block storage from IBM Block
+# Storage service. When false, will not order any storage and nodes become ephemeral.
+#
+# The other options let you change the storage settings.
+#
+storage:
+  enabled: false
+  billingType: hourly
+  storageClassName: ibmc-block-retain-silver
+  size: 50Gi
+
+#
+# The image to use. This Helm Chart depends on changes to the original Docker image,
+# so don't chanage this unless you've built the changes into your own image and have
+# uploaded to a private registry.
+#
+image: mtreadway/cassandra:3.11

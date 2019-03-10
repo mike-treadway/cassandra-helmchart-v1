@@ -1,0 +1,4 @@
+dependencies:
+- name: ibmcloud-block-storage-plugin
+  repository: "https://registry.bluemix.net/helm/ibm"
+  version: "1.1.*"

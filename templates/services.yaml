@@ -1,0 +1,44 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: {{ .Values.name }}
+  name: {{ .Values.name }}
+  namespace: {{ .Values.namespace }}
+spec:
+  clusterIP: None
+  ports:
+    - port: 9042
+  selector:
+    app: {{ .Values.name }}
+---
+#{{- $root := . -}}
+#{{ required "A valid .Values.who entry required!" .Values.who }}
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: {{ $root.Values.name }}-{{ $index }}
+  name: {{ $root.Values.name }}-{{ $index }}
+  namespace: {{ $root.Values.namespace }}
+  annotations:
+    service.kubernetes.io/ibm-load-balancer-cloud-provider-ip-type: private
+    service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
+spec:
+  publishNotReadyAddresses: true
+  type: LoadBalancer
+  ports:
+    - name: cql
+      port: 9042    # Client port
+    - name: intra-node
+      port: 7000	# Cassandra inter-node cluster communication.
+    - name: tls-intra-node
+      port: 7001	# Cassandra SSL inter-node cluster communication.
+    - name: jmx
+      port: 7199	# Cassandra JMX monitoring port.
+  selector:
+    statefulset.kubernetes.io/pod-name: {{ $root.Values.name }}-{{ $index }}
+  loadBalancerIP: {{ $ip }}
+---
+#{{- end }}
+
