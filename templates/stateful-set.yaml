@@ -17,8 +17,6 @@ spec:
         app: {{ .Values.name }}
     spec:
       terminationGracePeriodSeconds: 1800
-      imagePullSecrets:
-      - name: bluemix-image-pull-secret-regional
       containers:
         - name: {{ .Values.name }}
           image: {{ .Values.image }}
