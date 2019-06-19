@@ -42,7 +42,7 @@ if [ "$1" = 'cassandra' ]; then
   # If multiple broadcast addresses were past in, then assume we're running as a stateful set
   # and use the hostname to determine the index.
   if [ "$CASSANDRA_BROADCAST_ADDRESS_LIST" ]; then
-    index=$((${HOST: -1}+1))
+    index=$((${HOSTNAME: -1}+1))
     myAddress=`echo "$CASSANDRA_BROADCAST_ADDRESS_LIST" | sed "$index q;d"`
     if [ "$myAddress" ]; then
       CASSANDRA_BROADCAST_ADDRESS="$myAddress"
